@@ -39,7 +39,7 @@ async def query_gemini_ai(prompt: str) -> str:
                 else:
                     return content, False
             else:
-                return "No candidates found in the response.", False
+                return "No candidates found in the response from Gemini AI.", False
         else:
             return f"Error: {response.status_code} - {response.text}", False
     except requests.exceptions.RequestException as e:
