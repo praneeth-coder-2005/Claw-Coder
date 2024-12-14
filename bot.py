@@ -1,12 +1,13 @@
 import re
 import requests
 import json
+
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
 from config import TELEGRAM_TOKEN, GEMINI_API_KEY
 
-# Query Gemini AI API
+# Query Gemini AI API with error handling and special characters escaped
 async def query_gemini_ai(prompt: str) -> str:
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
     headers = {
@@ -32,8 +33,8 @@ async def query_gemini_ai(prompt: str) -> str:
             candidates = result.get("candidates", [])
             if candidates:
                 content = candidates[0].get("content", {}).get("parts", [])[0].get("text", "")
-                # Escape special characters including '!', '-', etc.
-                content = re.sub(r'[().{}*_\\!]', r'\\\g<0>', content)
+                # Escape special characters
+                content = re.sub(r'[().{}*_\\-!]', r'\\\g<0>', content)
                 return content[:4096]  # Truncate response to 4096 characters
             else:
                 return "No candidates found."
@@ -46,7 +47,7 @@ async def query_gemini_ai(prompt: str) -> str:
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Hi! Ask me anything, and I'll assist with Gemini AI.")
 
-# Message handler for user queries
+# Handle messages with large code responses split into multiple messages
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
     await update.message.reply_text("Processing your request...")
