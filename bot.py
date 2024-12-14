@@ -1,7 +1,7 @@
 import requests
 import json
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
 
 from config import TELEGRAM_TOKEN, GEMINI_API_KEY
 
@@ -88,7 +88,7 @@ def main():
     # Add command and message handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    application.add_handler(CallbackQueryHandler(copy_code))
+    application.add_handler(CallbackQueryHandler(copy_code))  # Correctly handle the callback
 
     # Start the bot
     application.run_polling()
