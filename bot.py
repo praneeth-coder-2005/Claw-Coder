@@ -34,8 +34,8 @@ async def query_gemini_ai(prompt: str) -> str:
             candidates = result.get("candidates", [])
             if candidates:
                 content = candidates[0].get("content", {}).get("parts", [])[0].get("text", "")
-                # Escape problematic characters
-                content = re.sub(r'(?<!\\)[().{}\-]', r'\\\g<0>', content)
+                # Remove unsupported markdown characters and truncate if necessary
+                content = re.sub(r'(?<!\([\{\}\-\_\*])', r'\\\1', content)  # Escape specific characters
                 return content[:4096]  # Truncate response to 4096 characters
             else:
                 return "No candidates found in the response from Gemini AI."
@@ -58,7 +58,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Get response from Gemini AI
     ai_response = await query_gemini_ai(user_message)
 
-    # Send the AI response with MarkdownV2 parsing, ensuring it doesn't exceed Telegram's limit
+    # Send the AI response with MarkdownV2 parsing in chunks if necessary
     while len(ai_response) > 4096:
         await update.message.reply_text(ai_response[:4096], parse_mode="MarkdownV2")
         ai_response = ai_response[4096:]  # Truncate the remaining part
