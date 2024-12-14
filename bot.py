@@ -51,9 +51,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
     await update.message.reply_text("Processing your request...")
     ai_response = await query_gemini_ai(user_message)
+
+    # Improved message splitting for large responses
     while len(ai_response) > 4096:
-        await update.message.reply_text(ai_response[:4096], parse_mode="MarkdownV2")
+        part = ai_response[:4096]
+        await update.message.reply_text(part, parse_mode="MarkdownV2")
         ai_response = ai_response[4096:]
+    
     await update.message.reply_text(ai_response, parse_mode="MarkdownV2")
 
 # Main function to run the bot
