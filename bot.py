@@ -56,7 +56,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ai_response = await query_gemini_ai(user_message)
 
     # Send the AI response
-    await update.message.reply_text(ai_response)
+    await update.message.reply_text(ai_response, parse_mode="MarkdownV2")
 
 # Main function to run the bot
 def main():
