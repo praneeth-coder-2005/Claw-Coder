@@ -3,6 +3,7 @@ import json
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
+from telegram.error import BadRequest
 
 from config import TELEGRAM_TOKEN, GEMINI_API_KEY
 
@@ -62,7 +63,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Save the context for future use
     context.user_data[str(user_chat_id)] = user_message
 
-    await update.message.reply_text(ai_response, parse_mode=ParseMode.MARKDOWN_V2)
+    try:
+        await update.message.reply_text(ai_response, parse_mode=ParseMode.MARKDOWN_V2)
+    except BadRequest as e:
+        # Handle BadRequest exception (for example, when the API rejects the message due to special characters)
+        await update.message.reply_text(f"Error: {str(e)}. Please try again.")
 
 # Enhanced Inline Keyboard with multiple steps
 async def handle_inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -77,7 +82,10 @@ async def handle_inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE
         del context.user_data['step']
     elif context.user_data.get('step') == 'code':
         ai_response = await query_gemini_ai(query.message.text)
-        await query.message.reply_text(ai_response, parse_mode=ParseMode.MARKDOWN_V2)
+        try:
+            await query.message.reply_text(ai_response, parse_mode=ParseMode.MARKDOWN_V2)
+        except BadRequest as e:
+            await query.message.reply_text(f"Error: {str(e)}. Please try again.")
         del context.user_data['step']
     else:
         await query.message.reply_text("Invalid option. Please try again.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Generate Code", callback_data="generate_code")]]))
