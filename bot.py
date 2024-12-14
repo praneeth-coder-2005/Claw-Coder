@@ -1,5 +1,6 @@
 import requests
 import json
+import re
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, constants
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
 from telegram.error import BadRequest
@@ -19,7 +20,7 @@ async def query_gemini_ai(prompt: str, context: str = "") -> str:
         "contents": [
             {
                 "parts": [
-                    {"text": prompt}
+                    {"text": re.sub(r'[-{}]', r'\\\g<0>', prompt)}  # Escaping problematic characters
                 ],
                 "context": context
             }
@@ -61,9 +62,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data[str(user_chat_id)] = user_message
 
     try:
-        ai_response = ai_response.replace('-', '\\-').replace('{', '\\{')  # Escaping special characters
         await update.message.reply_text(ai_response, parse_mode=constants.ParseMode.MARKDOWN_V2)
     except BadRequest as e:
+        ai_response = ai_response.replace('-', '\\-').replace('{', '\\{').replace('}', '\\}')  # Escaping problematic characters
         await update.message.reply_text(ai_response, parse_mode=constants.ParseMode.MARKDOWN_V2)
 
 # Inline keyboard callback handler
@@ -80,9 +81,9 @@ async def handle_inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE
     elif context.user_data.get('step') == 'code':
         ai_response = await query_gemini_ai(query.message.text)
         try:
-            ai_response = ai_response.replace('-', '\\-').replace('{', '\\{}')  # Escaping special characters
             await query.message.reply_text(ai_response, parse_mode=constants.ParseMode.MARKDOWN_V2)
         except BadRequest as e:
+            ai_response = ai_response.replace('-', '\\-').replace('{', '\\{').replace('}', '\\}')  # Escaping problematic characters
             await query.message.reply_text(ai_response, parse_mode=constants.ParseMode.MARKDOWN_V2)
         del context.user_data['step']
     else:
