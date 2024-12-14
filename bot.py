@@ -33,7 +33,7 @@ async def query_gemini_ai(prompt: str) -> str:
             if candidates:
                 content = candidates[0].get("content", {}).get("parts", [])[0].get("text", "")
                 # Escaping special characters individually
-                content = re.sub(r'[().{}*_\\-!]', r'\\\g<0>', content)
+                content = re.sub(r'[\{\}\*_\\-!]', r'\\\g<0>', content)
                 return content[:4096]  # Truncate response to 4096 characters
             else:
                 return "No candidates found."
