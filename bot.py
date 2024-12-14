@@ -1,6 +1,6 @@
+import re
 import requests
 import json
-import re
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
@@ -32,7 +32,7 @@ async def query_gemini_ai(prompt: str) -> str:
             candidates = result.get("candidates", [])
             if candidates:
                 content = candidates[0].get("content", {}).get("parts", [])[0].get("text", "")
-                content = re.sub(r'[(){}\-_\\*]', r'\\\g<0>', content)
+                content = re.sub(r'[().{}*_]', r'\\\g<0>', content)  # Escape specific characters
                 return content[:4096]  # Truncate response to 4096 characters
             else:
                 return "No candidates found."
