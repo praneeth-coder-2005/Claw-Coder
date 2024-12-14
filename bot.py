@@ -2,9 +2,7 @@ import re
 import requests
 import json
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-
-from config import TELEGRAM_TOKEN, GEMINI_API_KEY
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, Context import TELEGRAM_TOKEN, GEMINI_API_KEY
 
 # Query Gemini AI API with error handling and special characters escaped
 async def query_gemini_ai(prompt: str) -> str:
@@ -53,12 +51,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ai_response = await query_gemini_ai(user_message)
 
     # Improved message splitting for large responses
-    while len(ai_response) > 4096:
-        part = ai_response[:4096]
+    parts = [ai_response[i:i+4096] for i in range(0, len(ai_response), 4096)]
+    for part in parts:
         await update.message.reply_text(part, parse_mode="MarkdownV2")
-        ai_response = ai_response[4096:]
-    
-    await update.message.reply_text(ai_response, parse_mode="MarkdownV2")
 
 # Main function to run the bot
 def main():
