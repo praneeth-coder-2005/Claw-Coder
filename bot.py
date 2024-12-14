@@ -1,35 +1,54 @@
-from pyrogram import Client, filters
-from pyrogram.types import Message
-from google.generativeai.models import Code  # Import Code from google.generativeai.models
+import requests
+from telegram import Update
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from config import TELEGRAM_TOKEN, GEMINI_API_URL, GEMINI_API_KEY  # Import credentials
 
-from config import API_ID, API_HASH, BOT_TOKEN, GOOGLE_API_KEY
-
-# Set your Google API key
-Code.api_key = GOOGLE_API_KEY
-
-app = Client("gemini_coder_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
-
-@app.on_message(filters.command("code"))
-async def generate_code(client: Client, message: Message):
-    """Generates code using Gemini."""
+# Query Gemini AI for coding assistance
+def query_gemini_ai(prompt: str) -> str:
     try:
-        # Get the user's code request from the message text
-        code_request = message.text.replace("/code", "").strip()
-        if not code_request:
-            await message.reply_text("Please provide a code request after the /code command.")
-            return
+        headers = {
+            "Authorization": f"Bearer {GEMINI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        data = {
+            "prompt": prompt,
+            "temperature": 0.7,
+            "max_tokens": 300
+        }
+        response = requests.post(GEMINI_API_URL, headers=headers, json=data)
 
-        # Generate code using Gemini
-        response = Code.generate(
-            model="gemini-pro-code-bison",  # Use the code generation model
-            prompt=code_request
-        )
-        code_snippet = response.result  # Access the result
-
-        # Send the generated code to the user
-        await message.reply_text(f"```\n{code_snippet}\n```", parse_mode="markdown")
-
+        if response.status_code == 200:
+            return response.json().get("response", "No response received.")
+        else:
+            return f"Error: {response.status_code} - {response.text}"
     except Exception as e:
-        await message.reply_text(f"Error: {e}")
+        return f"Error communicating with Gemini AI: {str(e)}"
 
-app.run()
+# Define the /start command handler
+def start(update: Update, context: CallbackContext):
+    update.message.reply_text("Hi! I’m your Gemini AI-powered coding assistant. Send me a coding task or question!")
+
+# Define the message handler
+def handle_message(update: Update, context: CallbackContext):
+    user_message = update.message.text
+    update.message.reply_text("Processing your request with Gemini AI...")
+    
+    # Get response from Gemini AI
+    ai_response = query_gemini_ai(user_message)
+    update.message.reply_text(f"Here’s the result:\n\n{ai_response}")
+
+# Main function to initialize the bot
+def main():
+    updater = Updater(TELEGRAM_TOKEN, use_context=True)
+    dispatcher = updater.dispatcher
+
+    # Add command and message handlers
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
+
+    # Start the bot
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == "__main__":
+    main()
