@@ -2,7 +2,9 @@ import re
 import requests
 import json
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, Context import TELEGRAM_TOKEN, GEMINI_API_KEY
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+
+from config import TELEGRAM_TOKEN, GEMINI_API_KEY
 
 # Query Gemini AI API with error handling and special characters escaped
 async def query_gemini_ai(prompt: str) -> str:
