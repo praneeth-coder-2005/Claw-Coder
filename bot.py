@@ -64,7 +64,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             f"Here’s the result:\n\n{ai_response}", 
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("Copy", callback_data=f"copy:{ai_response}")]
+                [InlineKeyboardButton("Copy", callback_data=f"copy_code::{ai_response}")]
             ])
         )
     else:
@@ -73,9 +73,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Callback handler for the copy button
 async def copy_code(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    data = query.data.split(":")
+    data = query.data.split("::")
     
-    if data[0] == "copy":
+    if data[0] == "copy_code":
         code_to_copy = data[1]
         await query.answer("Code copied!")
         await query.edit_message_text(f"Code copied!\n\n{code_to_copy}")
