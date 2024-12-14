@@ -1,8 +1,8 @@
 import requests
 import json
+import re
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-import re
 
 from config import TELEGRAM_TOKEN, GEMINI_API_KEY
 
@@ -26,19 +26,16 @@ async def query_gemini_ai(prompt: str) -> str:
     }
 
     try:
-        # Send POST request to the Gemini AI API
         response = requests.post(url, headers=headers, params=params, data=json.dumps(data))
-
         if response.status_code == 200:
             result = response.json()
             candidates = result.get("candidates", [])
             if candidates:
                 content = candidates[0].get("content", {}).get("parts", [])[0].get("text", "")
-                # Escape problematic characters
-                content = re.sub(r'(?<!\\)[().]', r'\\\g<0>', content)
-                return content
+                content = re.sub(r'[(){}\-_\\*]', r'\\\g<0>', content)
+                return content[:4096]  # Truncate response to 4096 characters
             else:
-                return "No candidates found in the response from Gemini AI."
+                return "No candidates found."
         else:
             return f"Error: {response.status_code} - {response.text}"
     except requests.exceptions.RequestException as e:
@@ -46,31 +43,23 @@ async def query_gemini_ai(prompt: str) -> str:
 
 # Command handler for /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "Hi! I’m your Gemini AI-powered assistant. Send me a question or task, and I'll help!"
-    )
+    await update.message.reply_text("Hi! Ask me anything, and I'll assist with Gemini AI.")
 
 # Message handler for user queries
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
-    await update.message.reply_text("Processing your request with Gemini AI...")
-
-    # Get response from Gemini AI
+    await update.message.reply_text("Processing your request...")
     ai_response = await query_gemini_ai(user_message)
-
-    # Send the AI response with MarkdownV2 parsing
+    while len(ai_response) > 4096:
+        await update.message.reply_text(ai_response[:4096], parse_mode="MarkdownV2")
+        ai_response = ai_response[4096:]
     await update.message.reply_text(ai_response, parse_mode="MarkdownV2")
 
 # Main function to run the bot
 def main():
-    # Initialize the application
     application = Application.builder().token(TELEGRAM_TOKEN).build()
-
-    # Add command and message handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
-    # Start the bot
     application.run_polling()
 
 if __name__ == "__main__":
