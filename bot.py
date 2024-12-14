@@ -1,10 +1,10 @@
 import requests
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from config import TELEGRAM_TOKEN, GEMINI_API_URL, GEMINI_API_KEY  # Import credentials
 
-# Query Gemini AI for coding assistance
-def query_gemini_ai(prompt: str) -> str:
+# Function to query Gemini AI
+async def query_gemini_ai(prompt: str) -> str:
     try:
         headers = {
             "Authorization": f"Bearer {GEMINI_API_KEY}",
@@ -24,31 +24,30 @@ def query_gemini_ai(prompt: str) -> str:
     except Exception as e:
         return f"Error communicating with Gemini AI: {str(e)}"
 
-# Define the /start command handler
-def start(update: Update, context: CallbackContext):
-    update.message.reply_text("Hi! I’m your Gemini AI-powered coding assistant. Send me a coding task or question!")
+# Command handler for /start
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Hi! I’m your Gemini AI-powered coding assistant. Send me a coding task or question!")
 
-# Define the message handler
-def handle_message(update: Update, context: CallbackContext):
+# Message handler for user queries
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
-    update.message.reply_text("Processing your request with Gemini AI...")
-    
-    # Get response from Gemini AI
-    ai_response = query_gemini_ai(user_message)
-    update.message.reply_text(f"Here’s the result:\n\n{ai_response}")
+    await update.message.reply_text("Processing your request with Gemini AI...")
 
-# Main function to initialize the bot
+    # Get response from Gemini AI
+    ai_response = await query_gemini_ai(user_message)
+    await update.message.reply_text(f"Here’s the result:\n\n{ai_response}")
+
+# Main function to set up the bot
 def main():
-    updater = Updater(TELEGRAM_TOKEN, use_context=True)
-    dispatcher = updater.dispatcher
+    # Initialize the application
+    application = Application.builder().token(TELEGRAM_TOKEN).build()
 
     # Add command and message handlers
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     # Start the bot
-    updater.start_polling()
-    updater.idle()
+    application.run_polling()
 
 if __name__ == "__main__":
     main()
