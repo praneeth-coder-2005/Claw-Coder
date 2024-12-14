@@ -2,7 +2,7 @@ import requests
 import json
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-from config import TELEGRAM_TOKEN, GEMINI_API_KEY  # Import credentials
+from config import TELEGRAM_TOKEN, GEMINI_API_KEY
 
 # Query Gemini AI API
 async def query_gemini_ai(prompt: str) -> str:
@@ -11,7 +11,7 @@ async def query_gemini_ai(prompt: str) -> str:
         "Content-Type": "application/json"
     }
     params = {
-        "key": GEMINI_API_KEY  # Your API Key
+        "key": GEMINI_API_KEY
     }
     data = {
         "contents": [
@@ -29,8 +29,13 @@ async def query_gemini_ai(prompt: str) -> str:
 
         if response.status_code == 200:
             result = response.json()
-            # Extract generated content
-            return result.get("content", "No content received from Gemini AI.")
+
+            # Extract content from the first candidate
+            candidates = result.get("candidates", [])
+            if candidates:
+                return candidates[0].get("content", {}).get("parts", [])[0].get("text", "No text found.")
+            else:
+                return "No candidates found in the response."
         else:
             return f"Error: {response.status_code} - {response.text}"
     except requests.exceptions.RequestException as e:
@@ -39,7 +44,7 @@ async def query_gemini_ai(prompt: str) -> str:
 # Command handler for /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Hi! I’m your Gemini AI-powered coding assistant. Send me a question or coding task, and I'll help!"
+        "Hi! I’m your Gemini AI-powered assistant. Send me a question or task, and I'll help!"
     )
 
 # Message handler for user queries
