@@ -1,7 +1,7 @@
 import requests
 import json
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
+from telegram import Update
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
 from config import TELEGRAM_TOKEN, GEMINI_API_KEY
 
@@ -55,7 +55,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Get response from Gemini AI
     ai_response = await query_gemini_ai(user_message)
 
-    # Send the AI response
+    # Send the AI response with MarkdownV2 parsing
     await update.message.reply_text(ai_response, parse_mode="MarkdownV2")
 
 # Main function to run the bot
