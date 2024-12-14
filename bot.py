@@ -1,14 +1,13 @@
 import requests
 import json
 import re
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, constants
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
-from telegram.error import BadRequest
+from telegram import Update
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
 from config import TELEGRAM_TOKEN, GEMINI_API_KEY
 
-# Query Gemini AI API with Contextual Awareness
-async def query_gemini_ai(prompt: str, context: str = "") -> str:
+# Query Gemini AI API
+async def query_gemini_ai(prompt: str) -> str:
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
     headers = {
         "Content-Type": "application/json"
@@ -20,14 +19,14 @@ async def query_gemini_ai(prompt: str, context: str = "") -> str:
         "contents": [
             {
                 "parts": [
-                    {"text": re.sub(r'[-{}]', r'\\\g<0>', prompt)}  # Escaping problematic characters
-                ],
-                "context": context
+                    {"text": prompt}
+                ]
             }
         ]
     }
 
     try:
+        # Send POST request to the Gemini AI API
         response = requests.post(url, headers=headers, params=params, data=json.dumps(data))
 
         if response.status_code == 200:
@@ -35,6 +34,8 @@ async def query_gemini_ai(prompt: str, context: str = "") -> str:
             candidates = result.get("candidates", [])
             if candidates:
                 content = candidates[0].get("content", {}).get("parts", [])[0].get("text", "")
+                # Escape problematic characters
+                content = re.sub(r'(?<!\\)[().{}\-]', r'\\\g<0>', content)  # Escaping problematic characters
                 return content
             else:
                 return "No candidates found in the response from Gemini AI."
@@ -46,57 +47,28 @@ async def query_gemini_ai(prompt: str, context: str = "") -> str:
 # Command handler for /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Hi! I’m your Gemini AI-powered assistant. Send me a question or task, and I'll help!",
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Generate Code", callback_data="generate_code")]])
+        "Hi! I’m your Gemini AI-powered assistant. Send me a question or task, and I'll help!"
     )
 
-# Message handler for user queries with contextual awareness
+# Message handler for user queries
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
-    user_chat_id = update.message.chat_id
-    context_data = context.user_data.get(str(user_chat_id), "")
-    
     await update.message.reply_text("Processing your request with Gemini AI...")
-    ai_response = await query_gemini_ai(user_message, context_data)
-    
-    context.user_data[str(user_chat_id)] = user_message
 
-    try:
-        await update.message.reply_text(ai_response, parse_mode=constants.ParseMode.MARKDOWN_V2)
-    except BadRequest as e:
-        ai_response = ai_response.replace('-', '\\-').replace('{', '\\{').replace('}', '\\}')  # Escaping problematic characters
-        await update.message.reply_text(ai_response, parse_mode=constants.ParseMode.MARKDOWN_V2)
+    # Get response from Gemini AI
+    ai_response = await query_gemini_ai(user_message)
 
-# Inline keyboard callback handler
-async def handle_inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    data = query.data
-    
-    if data == "generate_code":
-        context.user_data['step'] = 'code'
-        await query.message.reply_text("Enter your code-related question.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Cancel", callback_data="cancel")]]))
-    elif data == "cancel":
-        await query.message.reply_text("Operation cancelled.", reply_markup=InlineKeyboardMarkup([]))
-        del context.user_data['step']
-    elif context.user_data.get('step') == 'code':
-        ai_response = await query_gemini_ai(query.message.text)
-        try:
-            await query.message.reply_text(ai_response, parse_mode=constants.ParseMode.MARKDOWN_V2)
-        except BadRequest as e:
-            ai_response = ai_response.replace('-', '\\-').replace('{', '\\{').replace('}', '\\}')  # Escaping problematic characters
-            await query.message.reply_text(ai_response, parse_mode=constants.ParseMode.MARKDOWN_V2)
-        del context.user_data['step']
-    else:
-        await query.message.reply_text("Invalid option. Please try again.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Generate Code", callback_data="generate_code")]]))
+    # Send the AI response with MarkdownV2 parsing
+    await update.message.reply_text(ai_response, parse_mode="MarkdownV2")
 
 # Main function to run the bot
 def main():
+    # Initialize the application
     application = Application.builder().token(TELEGRAM_TOKEN).build()
 
-    # Add command handlers
+    # Add command and message handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    application.add_handler(CallbackQueryHandler(handle_inline_query))
 
     # Start the bot
     application.run_polling()
