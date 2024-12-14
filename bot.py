@@ -75,7 +75,7 @@ async def copy_code(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     data = query.data.split("::")
     
-    if data[0] == "copy_code":
+    if len(data) == 2 and data[0] == "copy_code":
         code_to_copy = data[1]
         await query.answer("Code copied!")
         await query.edit_message_text(f"Code copied!\n\n{code_to_copy}")
@@ -88,7 +88,7 @@ def main():
     # Add command and message handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    application.add_handler(CallbackQueryHandler(copy_code))  # Correctly handle the callback
+    application.add_handler(CallbackQueryHandler(copy_code))  # Handle callback queries properly
 
     # Start the bot
     application.run_polling()
