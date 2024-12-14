@@ -1,6 +1,6 @@
 from pyrogram import Client, filters
 from pyrogram.types import Message
-from google.generativeai import Code  # Import the Code class
+from google.generativeai.models import Code  # Import Code from google.generativeai.models
 
 from config import API_ID, API_HASH, BOT_TOKEN, GOOGLE_API_KEY
 
