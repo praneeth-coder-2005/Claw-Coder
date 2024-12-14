@@ -61,9 +61,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data[str(user_chat_id)] = user_message
 
     try:
+        ai_response = ai_response.replace('-', '\\-').replace('{', '\\{')  # Escaping special characters
         await update.message.reply_text(ai_response, parse_mode=constants.ParseMode.MARKDOWN_V2)
     except BadRequest as e:
-        ai_response = ai_response.replace('-', '\\-')  # Escaping the hyphen
         await update.message.reply_text(ai_response, parse_mode=constants.ParseMode.MARKDOWN_V2)
 
 # Inline keyboard callback handler
@@ -80,9 +80,9 @@ async def handle_inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE
     elif context.user_data.get('step') == 'code':
         ai_response = await query_gemini_ai(query.message.text)
         try:
+            ai_response = ai_response.replace('-', '\\-').replace('{', '\\{}')  # Escaping special characters
             await query.message.reply_text(ai_response, parse_mode=constants.ParseMode.MARKDOWN_V2)
         except BadRequest as e:
-            ai_response = ai_response.replace('-', '\\-')  # Escaping the hyphen
             await query.message.reply_text(ai_response, parse_mode=constants.ParseMode.MARKDOWN_V2)
         del context.user_data['step']
     else:
