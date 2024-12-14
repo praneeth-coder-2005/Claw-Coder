@@ -1,8 +1,7 @@
 import requests
 import json
-from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-import re
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
 
 from config import TELEGRAM_TOKEN, GEMINI_API_KEY
 
@@ -34,8 +33,6 @@ async def query_gemini_ai(prompt: str) -> str:
             candidates = result.get("candidates", [])
             if candidates:
                 content = candidates[0].get("content", {}).get("parts", [])[0].get("text", "")
-                # Escape problematic characters
-                content = re.sub(r'(?<!\\)[().]', r'\\\g<0>', content)
                 return content
             else:
                 return "No candidates found in the response from Gemini AI."
@@ -58,7 +55,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Get response from Gemini AI
     ai_response = await query_gemini_ai(user_message)
 
-    # Send the AI response with MarkdownV2 parsing
+    # Send the AI response with MarkdownV2 for rich formatting
     await update.message.reply_text(ai_response, parse_mode="MarkdownV2")
 
 # Main function to run the bot
