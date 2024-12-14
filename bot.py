@@ -1,6 +1,6 @@
 import requests
 import json
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, constants
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
 from telegram.error import BadRequest
 
@@ -53,22 +53,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
     user_chat_id = update.message.chat_id
-    # Fetch previous context if exists
     context_data = context.user_data.get(str(user_chat_id), "")
     
-    # Process user's message with Gemini AI
     await update.message.reply_text("Processing your request with Gemini AI...")
     ai_response = await query_gemini_ai(user_message, context_data)
     
-    # Save the context for future use
     context.user_data[str(user_chat_id)] = user_message
 
     try:
-        await update.message.reply_text(ai_response, parse_mode=ParseMode.MARKDOWN_V2)
+        await update.message.reply_text(ai_response, parse_mode=constants.ParseMode.MARKDOWN_V2)
     except BadRequest as e:
-        # Handle BadRequest exception (for example, when the API rejects the message due to special characters)
         ai_response = ai_response.replace('-', '\\-')  # Escaping the hyphen
-        await update.message.reply_text(ai_response, parse_mode=ParseMode.MARKDOWN_V2)
+        await update.message.reply_text(ai_response, parse_mode=constants.ParseMode.MARKDOWN_V2)
 
 # Inline keyboard callback handler
 async def handle_inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -84,10 +80,10 @@ async def handle_inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE
     elif context.user_data.get('step') == 'code':
         ai_response = await query_gemini_ai(query.message.text)
         try:
-            await query.message.reply_text(ai_response, parse_mode=ParseMode.MARKDOWN_V2)
+            await query.message.reply_text(ai_response, parse_mode=constants.ParseMode.MARKDOWN_V2)
         except BadRequest as e:
             ai_response = ai_response.replace('-', '\\-')  # Escaping the hyphen
-            await query.message.reply_text(ai_response, parse_mode=ParseMode.MARKDOWN_V2)
+            await query.message.reply_text(ai_response, parse_mode=constants.ParseMode.MARKDOWN_V2)
         del context.user_data['step']
     else:
         await query.message.reply_text("Invalid option. Please try again.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Generate Code", callback_data="generate_code")]]))
