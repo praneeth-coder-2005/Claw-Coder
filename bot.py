@@ -29,11 +29,15 @@ async def query_gemini_ai(prompt: str) -> str:
 
         if response.status_code == 200:
             result = response.json()
-
             # Extract content from the first candidate
             candidates = result.get("candidates", [])
             if candidates:
-                return candidates[0].get("content", {}).get("parts", [])[0].get("text", "No text found.")
+                content = candidates[0].get("content", {}).get("parts", [])[0].get("text", "")
+                # If the message contains code, format it nicely
+                if "```" in content:
+                    return content
+                else:
+                    return content
             else:
                 return "No candidates found in the response."
         else:
@@ -54,7 +58,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Get response from Gemini AI
     ai_response = await query_gemini_ai(user_message)
-    await update.message.reply_text(f"Here’s the result:\n\n{ai_response}")
+    await update.message.reply_text(ai_response)
 
 # Main function to run the bot
 def main():
