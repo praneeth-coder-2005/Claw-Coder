@@ -4,6 +4,7 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
 from config import TELEGRAM_TOKEN, GEMINI_API_KEY
+import re
 
 # Query Gemini AI API
 async def query_gemini_ai(prompt: str) -> str:
@@ -33,6 +34,8 @@ async def query_gemini_ai(prompt: str) -> str:
             candidates = result.get("candidates", [])
             if candidates:
                 content = candidates[0].get("content", {}).get("parts", [])[0].get("text", "")
+                # Escape dots in the response to avoid markdown issues
+                content = re.sub(r'(?<!\\)\.', '\\.', content)
                 return content
             else:
                 return "No candidates found in the response from Gemini AI."
