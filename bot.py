@@ -1,7 +1,6 @@
 import requests
 import json
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.constants import ParseMode
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
 from telegram.error import BadRequest
 
@@ -46,7 +45,8 @@ async def query_gemini_ai(prompt: str, context: str = "") -> str:
 # Command handler for /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Hi! I’m your Gemini AI-powered assistant. Send me a question or task, and I'll help!"
+        "Hi! I’m your Gemini AI-powered assistant. Send me a question or task, and I'll help!",
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Generate Code", callback_data="generate_code")]])
     )
 
 # Message handler for user queries with contextual awareness
@@ -67,9 +67,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(ai_response, parse_mode=ParseMode.MARKDOWN_V2)
     except BadRequest as e:
         # Handle BadRequest exception (for example, when the API rejects the message due to special characters)
-        await update.message.reply_text(f"Error: {str(e)}. Please try again.")
+        ai_response = ai_response.replace('-', '\\-')  # Escaping the hyphen
+        await update.message.reply_text(ai_response, parse_mode=ParseMode.MARKDOWN_V2)
 
-# Enhanced Inline Keyboard with multiple steps
+# Inline keyboard callback handler
 async def handle_inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     data = query.data
@@ -85,7 +86,8 @@ async def handle_inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE
         try:
             await query.message.reply_text(ai_response, parse_mode=ParseMode.MARKDOWN_V2)
         except BadRequest as e:
-            await query.message.reply_text(f"Error: {str(e)}. Please try again.")
+            ai_response = ai_response.replace('-', '\\-')  # Escaping the hyphen
+            await query.message.reply_text(ai_response, parse_mode=ParseMode.MARKDOWN_V2)
         del context.user_data['step']
     else:
         await query.message.reply_text("Invalid option. Please try again.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Generate Code", callback_data="generate_code")]]))
