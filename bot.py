@@ -6,11 +6,8 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 
 from config import TELEGRAM_TOKEN, GEMINI_API_KEY
 
-# Dictionary to store user preferences
-user_preferences = {}
-
 # Query Gemini AI API with error handling and special characters escaped
-async def query_gemini_ai(prompt: str, task: str) -> str:
+async def query_gemini_ai(prompt: str) -> str:
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
     headers = {
         "Content-Type": "application/json"
@@ -25,8 +22,7 @@ async def query_gemini_ai(prompt: str, task: str) -> str:
                     {"text": prompt}
                 ]
             }
-        ],
-        "task": task  # Specify the task type (e.g., "code", "summary")
+        ]
     }
 
     try:
@@ -50,29 +46,11 @@ async def query_gemini_ai(prompt: str, task: str) -> str:
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Hi! Ask me anything, and I'll assist with Gemini AI.")
 
-# Command handler to set preferences
-async def set_preferences(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
-    preferences = context.args
-    if preferences:
-        user_preferences[user_id] = preferences
-        await update.message.reply_text(f"Preferences updated: {preferences}")
-    else:
-        await update.message.reply_text("Please provide preferences in the format: /setprefs <preference1> <preference2> ...")
-
-# Handle messages with different prompt types
+# Handle messages with large code responses split into multiple messages
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
     await update.message.reply_text("Processing your request...")
-
-    if user_message.lower().startswith("code:"):
-        prompt = user_message[len("code:"):].strip()
-        ai_response = await query_gemini_ai(prompt, "code")
-    elif user_message.lower().startswith("summary:"):
-        prompt = user_message[len("summary:"):].strip()
-        ai_response = await query_gemini_ai(prompt, "summary")
-    else:
-        ai_response = "Please specify 'code:' or 'summary:' to indicate your request."
+    ai_response = await query_gemini_ai(user_message)
 
     # Improved message splitting for large responses
     parts = [ai_response[i:i+4096] for i in range(0, len(ai_response), 4096)]
@@ -83,7 +61,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main():
     application = Application.builder().token(TELEGRAM_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("setprefs", set_preferences))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     application.run_polling()
 
